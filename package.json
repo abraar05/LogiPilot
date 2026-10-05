@@ -1,0 +1,22 @@
+{
+  "name": "logipilot",
+  "version": "1.0.0",
+  "description": "LogiPilot \u2014 sales-order packing, QC approval, delivery chain and stamped photo proofs.",
+  "private": true,
+  "scripts": {
+    "start": "python -m http.server 8848 --bind 127.0.0.1",
+    "serve": "npx --yes http-server -p 8848 -c-1",
+    "seed": "node tools/build-seed.mjs",
+    "check": "node --check js/config.js && node --check js/util.js && node --check js/crypto.js && node --check js/store.js && node --check js/charts.js && node --check js/ui.js && node --check js/table.js && node --check js/auth.js && node --check js/scan.js && node --check js/photo.js && node --check js/orders.js && node --check js/router.js && node --check js/app.js && node --check js/modules/_shared.js && node --check js/modules/dashboard.js && node --check js/modules/orders.js && node --check js/modules/packing.js && node --check js/modules/delivery.js && node --check js/modules/proofs.js && node --check js/modules/settings.js",
+    "android:add": "npx cap add android",
+    "android:sync": "npx cap sync android",
+    "android:apk": "npx cap sync android && cd android && ./gradlew assembleRelease",
+    "android:open": "npx cap open android",
+    "test": "node tools/acceptance.mjs"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/core": "^6.2.0"
+  }
+}

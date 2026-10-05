@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LogiPilot</string>
+    <string name="title_activity_main">LogiPilot</string>
+    <string name="package_name">app.logipilot.ops</string>
+    <string name="custom_url_scheme">app.logipilot.ops</string>
+</resources>

@@ -1,0 +1,113 @@
+apply plugin: 'com.android.application'
+
+// ── Release signing ────────────────────────────────────────────────────────
+// Two supported sources, checked in order:
+//   1. android/keystore.properties — the local default (git-ignored)
+//   2. ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD env vars — what CI injects
+// The keystore itself is looked up in a few conventional places so a developer
+// can drop it beside build.gradle or at the repo root without editing code.
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
+def keystoreFile = null
+def searchPaths = []
+if (keystoreProps['storeFile']) {
+    searchPaths.add(keystoreProps['storeFile'])
+}
+searchPaths.add('stockpilot-upload.p12')
+searchPaths.add('../stockpilot-upload.p12')
+searchPaths.add('stockpilot-upload.jks')
+searchPaths.add('../stockpilot-upload.jks')
+
+for (String p : searchPaths) {
+    File f = rootProject.file(p)
+    if (f.exists()) {
+        keystoreFile = f
+        break
+    }
+}
+
+def storePass = keystoreProps['storePassword'] ?: System.getenv('ANDROID_KEY_PASSWORD')
+def aliasName = keystoreProps['keyAlias'] ?: System.getenv('ANDROID_KEY_ALIAS')
+def keyPass = keystoreProps['keyPassword'] ?: System.getenv('ANDROID_KEY_PASSWORD')
+def isSigned = (keystoreFile != null) && storePass && aliasName
+
+android {
+    namespace "app.logipilot.ops"
+    compileSdk rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "app.logipilot.ops"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        release {
+            if (isSigned) {
+                if (keystoreFile.name.endsWith('.p12') || keystoreFile.name.endsWith('.pfx')) {
+                    setStoreType('PKCS12')
+                }
+                setStoreFile(keystoreFile)
+                setStorePassword(storePass)
+                setKeyAlias(aliasName)
+                setKeyPassword(keyPass)
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (isSigned) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+tasks.register('stockpilotSigning') {
+    doLast {
+        println "keystore : " + (keystoreFile ?: 'NOT FOUND')
+        println "alias    : " + (aliasName ?: 'NOT SET')
+        println "signed   : " + isSigned
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

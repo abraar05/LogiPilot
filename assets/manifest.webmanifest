@@ -1,0 +1,37 @@
+{
+  "name": "LogiPilot \u2014 Pack \u00b7 Approve \u00b7 Deliver",
+  "short_name": "LogiPilot",
+  "description": "Sales-order packing, QC approval, delivery chain and stamped photo proofs.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0d13",
+  "theme_color": "#0b0e14",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Packing",
+      "url": "./index.html#/packing"
+    },
+    {
+      "name": "QC Approval",
+      "url": "./index.html#/qc"
+    },
+    {
+      "name": "Delivery",
+      "url": "./index.html#/delivery"
+    }
+  ]
+}
