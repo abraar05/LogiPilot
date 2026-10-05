@@ -17,10 +17,10 @@ def searchPaths = []
 if (keystoreProps['storeFile']) {
     searchPaths.add(keystoreProps['storeFile'])
 }
-searchPaths.add('stockpilot-upload.p12')
-searchPaths.add('../stockpilot-upload.p12')
-searchPaths.add('stockpilot-upload.jks')
-searchPaths.add('../stockpilot-upload.jks')
+searchPaths.add('logipilot-upload.p12')
+searchPaths.add('../logipilot-upload.p12')
+searchPaths.add('logipilot-upload.jks')
+searchPaths.add('../logipilot-upload.jks')
 
 for (String p : searchPaths) {
     File f = rootProject.file(p)
