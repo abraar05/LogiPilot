@@ -82,21 +82,22 @@ SP.app = (() => {
     for (const group of SP.NAV) {
       const visible = group.items.filter((i) => !i.perm || SP.auth.can(i.perm));
       if (!visible.length) continue;
-      navHost.appendChild(SP.el('div.sidenav__group', group.group));
+      const groupKey = { Work: 'nav.group.work', Track: 'nav.group.track', Administration: 'nav.group.admin' }[group.group];
+      navHost.appendChild(SP.el('div.sidenav__group', SP.t(groupKey) || group.group));
       for (const item of visible) {
         navHost.appendChild(SP.el('button.navlink', {
           type: 'button', dataset: { route: item.route },
           onclick: () => { SP.router.go(item.route); closeNav(); },
         },
           SP.icon(item.icon),
-          SP.el('span.grow', item.label),
+          SP.el('span.grow', SP.t(`nav.${item.route}`)),
           SP.el('span.navlink__count', { dataset: { role: item.route }, hidden: true }, '')));
       }
     }
 
     for (const key of SP.TABS) {
       if (key === 'more') {
-        tabHost.appendChild(SP.el('button.tab', { type: 'button', dataset: { tab: '__more' }, onclick: openMoreSheet }, SP.icon('menu'), SP.el('span', 'More')));
+        tabHost.appendChild(SP.el('button.tab', { type: 'button', dataset: { tab: '__more' }, onclick: openMoreSheet }, SP.icon('menu'), SP.el('span', SP.t('tab.more'))));
         continue;
       }
       const item = SP.NAV.flatMap((g) => g.items).find((i) => i.route === key && i.tab);
@@ -105,7 +106,7 @@ SP.app = (() => {
       tabHost.appendChild(SP.el('button.tab', {
         type: 'button', dataset: { tab: key },
         onclick: () => { SP.router.go(key); },
-      }, SP.icon(item.icon), SP.el('span', item.label)));
+      }, SP.icon(item.icon), SP.el('span', SP.t(`nav.${item.route}`))));
     }
   }
 
@@ -115,13 +116,14 @@ SP.app = (() => {
     for (const group of SP.NAV) {
       const visible = group.items.filter((i) => !i.perm || SP.auth.can(i.perm));
       if (!visible.length) continue;
-      body.appendChild(SP.el('div.sidenav__group', { style: { padding: '8px 4px 2px' } }, group.group));
+      const groupKey2 = { Work: 'nav.group.work', Track: 'nav.group.track', Administration: 'nav.group.admin' }[group.group];
+      body.appendChild(SP.el('div.sidenav__group', { style: { padding: '8px 4px 2px' } }, SP.t(groupKey2) || group.group));
       body.appendChild(SP.el('div.grid.grid--3.gap-2', ...visible.map((i) => SP.el('button.card.card--pad', {
         type: 'button', style: { textAlign: 'center' },
         onclick: () => { shell.close(); SP.router.go(i.route); },
       },
         SP.el('span.lrow__ico', { style: { margin: '0 auto var(--sp-2)' } }, SP.icon(i.icon)),
-        SP.el('strong', { style: { fontSize: 'var(--fs-sm)', display: 'block' } }, i.label)))));
+        SP.el('strong', { style: { fontSize: 'var(--fs-sm)', display: 'block' } }, SP.t(`nav.${i.route}`))))));
     }
   }
 
@@ -146,7 +148,7 @@ SP.app = (() => {
     const mod = SP.router.get(route);
     const s = SP.store.state;
 
-    document.getElementById('appbarTitle').textContent = mod?.title || 'LogiPilot';
+    document.getElementById('appbarTitle').textContent = SP.t(`nav.${route}`) || mod?.title || 'LogiPilot';
     const subtitle = typeof mod?.subtitle === 'function' ? mod.subtitle() : (mod?.subtitle || '');
     document.getElementById('appbarSub').textContent = subtitle;
     document.title = `${mod?.title || 'LogiPilot'} · LogiPilot`;
@@ -258,7 +260,15 @@ SP.app = (() => {
   }
 
   function applyTheme() {
+    const p = SP.store.state.prefs;
     document.documentElement.dataset.theme = currentTheme();
+    document.documentElement.dataset.variant = p.style || 'default';
+    if (p.accent) {
+      const root = document.documentElement.style;
+      root.setProperty('--accent', p.accent);
+      root.setProperty('--accent-hi', p.accent);
+      root.setProperty('--accent-soft', `${p.accent}24`);
+    }
   }
 
   /* ══════════════════════════════════════════════════ SEARCH / CMDS */
@@ -283,7 +293,7 @@ SP.app = (() => {
     const pages = SP.NAV.flatMap((g) => g.items)
       .filter((i) => !i.perm || SP.auth.can(i.perm))
       .filter((i) => !q || SP.score(q, i.label) > 0)
-      .map((i) => ({ label: i.label, sub: 'Module', icon: i.icon, run: () => SP.router.go(i.route) }));
+      .map((i) => ({ label: SP.t(`nav.${i.route}`), sub: 'Module', icon: i.icon, run: () => SP.router.go(i.route) }));
     if (pages.length) groups.push({ name: 'Go to', items: pages.slice(0, 6) });
 
     if (q.length >= 1) {

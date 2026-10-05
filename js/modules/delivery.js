@@ -59,7 +59,7 @@ SP.modules.delivery = (() => {
         SP.el('div.section__head', SP.el('div.grow', SP.el('h2', 'Failed deliveries'), SP.el('p', 'Retry, return or cancel'))),
         SP.el('div.stack.gap-2', ...failed.map((o) => SP.ui2.orderCard(o, {
           onClick: () => runSheet(o.id),
-          actions: canDeliver ? [SP.el('button.btn.btn--sm.btn--primary', { type: 'button', onclick: (e) => { e.stopPropagation(); runSheet(o.id); } }, 'Resolve')] : [],
+          actions: canDeliver ? [SP.el('button.btn.btn--sm.btn--primary', { type: 'button', onclick: (e) => { e.stopPropagation(); runSheet(o.id); } }, SP.icon('refresh'), SP.t('act.resolve'))] : [],
         })))));
     }
     return root;
@@ -97,24 +97,24 @@ SP.modules.delivery = (() => {
     if (canDeliver && ['out_for_delivery', 'failed'].includes(o.status)) {
       actions.push(SP.el('button.btn.btn--ok.btn--lg', {
         type: 'button', onclick: () => deliver(o),
-      }, SP.icon('check'), 'Delivered — capture proof'));
+      }, SP.icon('camera'), SP.t('act.delivered')));
       actions.push(SP.el('button.btn.btn--danger', {
         type: 'button', onclick: () => fail(o),
-      }, SP.icon('alert'), 'Failed'));
+      }, SP.icon('alert'), SP.t('act.failed')));
       if (o.status === 'failed') {
         actions.push(SP.el('button.btn.btn--ghost', {
           type: 'button', onclick: async () => {
             SP.orders.transition(o.id, 'out_for_delivery', { note: 'Re-attempting delivery' });
             SP.ui.toast({ tone: 'ok', title: 'Back on the road' });
           },
-        }, SP.icon('refresh'), 'Retry delivery'));
+        }, SP.icon('refresh'), SP.t('act.retry')));
         actions.push(SP.el('button.btn.btn--ghost', {
           type: 'button',
           onclick: async () => {
             const r = await SP.modal({ title: `Return ${o.ref} to the warehouse?`, tone: 'danger', okLabel: 'Mark returned', fields: [{ key: 'note', label: 'Reason', required: true }] });
             if (r) { SP.orders.transition(o.id, 'returned', { note: r.note }); SP.ui.toast({ tone: 'ok', title: 'Marked returned' }); }
           },
-        }, SP.icon('logout'), 'Return'));
+        }, SP.icon('logout'), SP.t('act.return')));
       }
     }
     actions.push(SP.el('button.btn.btn--ghost', {
@@ -124,7 +124,7 @@ SP.modules.delivery = (() => {
         const q = encodeURIComponent(addr || o.customer.name);
         window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank', 'noopener');
       },
-    }, SP.icon('pin'), 'Map'));
+    }, SP.icon('pin'), SP.t('act.map')));
 
     SP.sheet({
       title: `Run ${o.ref}`,

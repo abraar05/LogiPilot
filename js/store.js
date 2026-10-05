@@ -31,7 +31,7 @@ SP.store = (() => {
       rev: 0,
       createdAt: Date.now(),
       onboarded: false,
-      prefs: { theme: 'dark', density: 'comfortable', accent: '#5b8cff', seenTips: [] },
+      prefs: { theme: 'dark', density: 'comfortable', accent: '#5b8cff', locale: 'en', style: 'default', seenTips: [] },
       settings: defaultSettings(),
 
       users: [],       // { id, name, email, phone, role, active, password, pin, createdAt, lastLoginAt, sessions[], colour }

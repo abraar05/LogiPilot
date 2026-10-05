@@ -57,7 +57,10 @@ SP.auth = (() => {
   const current_ = () => current;
   const isSignedIn = () => !!current;
   const roleOf = (user) => SP.store.state.users.find((u) => u.id === user.id)?.role || user?.role || 'packer';
-  const roleDef = (roleId) => SP.ROLES.find((r) => r.id === roleId) || SP.ROLES[0];
+  const roleDef = (roleId) => {
+    const def = SP.ROLES.find((r) => r.id === roleId) || SP.ROLES[0];
+    return { ...def, get label() { return SP.i18n ? SP.i18n.roleLabel(def.id) : def.label; } };
+  };
   const permsOf = (roleId) => roleDef(roleId).perms;
 
   const can = (perm, user = current) => {

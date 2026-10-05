@@ -15,15 +15,15 @@ SP.modules.packing = (() => {
     const queue = SP.orders.queues().toPack;
 
     root.appendChild(SP.ui2.pageHead({
-      title: 'Packing',
-      sub: 'Prepare goods exactly as per the sales order, then prove it with a photo.',
-      actions: [SP.ui2.scanButton({ onOrder: (o) => workspace(o.id), label: 'Scan order' })],
+      title: SP.t('nav.packing'),
+      sub: SP.t('page.packing.sub'),
+      actions: [SP.ui2.scanButton({ onOrder: (o) => workspace(o.id), label: SP.t('act.scan_order') })],
     }));
 
     if (params?.id) { workspace(params.id); }
 
     if (!queue.length) {
-      root.appendChild(SP.empty({ icon: 'box', title: 'Nothing to pack', body: 'New orders assigned to you will appear here.' }));
+      root.appendChild(SP.empty({ icon: 'box', title: SP.t('empty.packing'), body: SP.t('empty.packing.sub') }));
       return root;
     }
 
@@ -37,7 +37,7 @@ SP.modules.packing = (() => {
             type: 'button',
             class: rework ? 'btn--danger' : 'btn--primary',
             onclick: (e) => { e.stopPropagation(); workspace(o.id); },
-          }, rework ? 'Rework' : mine ? 'Continue' : 'Claim') : SP.ui2.tag(`with ${SP.ui2.userName(o.packerId)}`, 'mute'),
+          }, SP.icon(rework ? 'refresh' : mine ? 'arrowRight' : 'plus'), rework ? SP.t('act.rework') : mine ? SP.t('act.continue') : SP.t('act.claim')) : SP.ui2.tag(`with ${SP.ui2.userName(o.packerId)}`, 'mute'),
         ],
       });
     })));
@@ -57,7 +57,7 @@ SP.modules.packing = (() => {
     if (!o.packerId) {
       body.appendChild(SP.el('div.callout', { dataset: { tone: 'brand' } },
         SP.el('span.callout__ico', SP.icon('info')),
-        SP.el('div.callout__body', SP.el('strong', 'Unassigned order'), SP.el('p', 'Claim it to start packing.')),
+        SP.el('div.callout__body', SP.el('strong', SP.t('misc.unassigned')), SP.el('p', SP.t('misc.claim_start'))),
         SP.el('button.btn.btn--sm.btn--primary', {
           type: 'button',
           onclick: async () => {
@@ -66,7 +66,7 @@ SP.modules.packing = (() => {
               shell.close(); workspace(orderId);
             } catch (e) { SP.ui.toast({ tone: 'danger', title: e.message }); }
           },
-        }, 'Claim this order')));
+        }, SP.icon('plus'), SP.t('act.claim'))));
     }
 
     // items checklist with scan-to-verify
@@ -119,7 +119,7 @@ SP.modules.packing = (() => {
               scanNote.style.color = 'var(--danger)';
             }
           },
-        }, SP.icon('target'), 'Scan item'),
+        }, SP.icon('target'), SP.t('act.scan_item')),
       ),
       scanNote,
       listHost,
@@ -131,11 +131,11 @@ SP.modules.packing = (() => {
       SP.clear(foot);
       const full = SP.orders.fullyPacked(o);
       const hint = SP.el('p.tiny', { style: { color: full ? 'var(--ok)' : 'var(--text-mute)' } },
-        full ? 'All items packed. Take a photo of the packaged goods to finish.' : 'Pack every item before submitting.');
+        full ? SP.t('misc.all_packed') : SP.t('misc.pack_first'));
       const submit = SP.el('button.btn.btn--primary.btn--block.btn--lg', {
         type: 'button', disabled: !full || !o.packerId,
         onclick: () => submitPacked(o),
-      }, SP.icon('check'), 'Mark packed & submit photo proof');
+      }, SP.icon('camera'), SP.t('act.mark_packed'));
       foot.append(hint, submit);
     };
     body.appendChild(foot);
@@ -173,15 +173,15 @@ SP.modules.qc = (() => {
     const queue = SP.orders.queues().qcQueue;
 
     root.appendChild(SP.ui2.pageHead({
-      title: 'QC Approval',
-      sub: 'Verify packaged items match the order. Approve with proof, or reject with a reason.',
-      actions: [SP.ui2.scanButton({ onOrder: (o) => review(o.id), label: 'Scan order' })],
+      title: SP.t('nav.qc'),
+      sub: SP.t('page.qc.sub'),
+      actions: [SP.ui2.scanButton({ onOrder: (o) => review(o.id), label: SP.t('act.scan_order') })],
     }));
 
     if (params?.id) review(params.id);
 
     if (!queue.length) {
-      root.appendChild(SP.empty({ icon: 'checkCircle', title: 'Queue clear', body: 'Packed orders will appear here for checking.' }));
+      root.appendChild(SP.empty({ icon: 'checkCircle', title: SP.t('empty.qc'), body: SP.t('empty.qc.sub') }));
       return root;
     }
 
@@ -192,7 +192,7 @@ SP.modules.qc = (() => {
         actions: [
           mine || !o.qcId ? SP.el('button.btn.btn--sm.btn--primary', {
             type: 'button', onclick: (e) => { e.stopPropagation(); review(o.id); },
-          }, mine ? 'Review' : 'Claim & review') : SP.ui2.tag(`with ${SP.ui2.userName(o.qcId)}`, 'mute'),
+          }, SP.icon(mine ? 'eye' : 'plus'), mine ? SP.t('act.review') : SP.t('act.claim_review')) : SP.ui2.tag(`with ${SP.ui2.userName(o.qcId)}`, 'mute'),
         ],
       });
     })));
@@ -225,27 +225,27 @@ SP.modules.qc = (() => {
       const allChecked = o.items.every((i) => checks.get(i.id));
       foot.append(
         SP.el('p.tiny', { style: { color: allChecked ? 'var(--ok)' : 'var(--text-mute)' } },
-          allChecked ? 'Everything matches. Capture the QC proof photo to approve.' : 'Check each item against the order before deciding.'),
+          allChecked ? SP.t('misc.all_matched') : SP.t('misc.check_each')),
         SP.el('div.row.gap-2',
           SP.el('button.btn.btn--ok.grow', {
             type: 'button', disabled: !allChecked,
             onclick: () => approve(o),
-          }, SP.icon('check'), 'Approve + photo'),
-          SP.el('button.btn.btn--danger.grow', { type: 'button', onclick: () => reject(o) }, SP.icon('x'), 'Reject')),
+          }, SP.icon('camera'), SP.t('act.approve_photo')),
+          SP.el('button.btn.btn--danger.grow', { type: 'button', onclick: () => reject(o) }, SP.icon('x'), SP.t('act.reject'))),
       );
     };
 
     const body = SP.el('div.stack.gap-3',
       !o.qcId ? SP.el('div.callout', { dataset: { tone: 'brand' } },
         SP.el('span.callout__ico', SP.icon('info')),
-        SP.el('div.callout__body', SP.el('strong', 'No QC approver assigned'), SP.el('p', 'Claim the review to proceed.')),
+        SP.el('div.callout__body', SP.el('strong', SP.t('misc.unassigned')), SP.el('p', SP.t('misc.claim_review_msg'))),
         SP.el('button.btn.btn--sm.btn--primary', {
           type: 'button',
           onclick: () => {
             try { SP.orders.assign(o.id, 'qcId', uid); shell.close(); review(orderId); }
             catch (e) { SP.ui.toast({ tone: 'danger', title: e.message }); }
           },
-        }, 'Claim review')) : null,
+        }, SP.icon('plus'), SP.t('act.claim_review'))) : null,
       SP.el('div.row.gap-2', { style: { alignItems: 'center' } }, SP.ui2.badge(o.status), SP.el('strong', o.customer.name)),
       SP.el('div',
         SP.el('strong', { style: { display: 'block', marginBottom: '6px' } }, 'Packer\'s proof'),
@@ -260,7 +260,7 @@ SP.modules.qc = (() => {
             if (item) { checks.set(item.id, true); SP.ui.toast({ tone: 'ok', title: `Verified: ${item.name}` }); drawItems(); drawFoot(); }
             else SP.ui.toast({ tone: 'danger', title: 'Not on this order', body: code });
           },
-        }, SP.icon('target'), 'Scan item')),
+        }, SP.icon('target'), SP.t('act.scan_item'))),
       listHost,
       foot,
     );

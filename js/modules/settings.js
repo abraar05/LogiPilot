@@ -49,6 +49,9 @@ SP.modules.settings = (() => {
           SP.icon(SP.app.currentTheme() === 'dark' ? 'sun' : 'moon'), 'Toggle theme'),
         SP.el('button.btn.btn--danger.btn--sm', { type: 'button', onclick: () => SP.app.signOut() }, SP.icon('logout'), 'Sign out'))));
 
+    /* ── language, currency & appearance ───────────────────────── */
+    root.appendChild(appearanceCard(u));
+
     /* proof policy */
     const st = s.settings;
     const toggle = (key, label, sub) => SP.el('label.switch', { style: { marginBottom: 'var(--sp-2)' } },
@@ -149,6 +152,69 @@ SP.modules.settings = (() => {
         SP.el('dt', 'Camera scanning'), SP.el('dd', SP.scan.cameraSupported ? 'Supported' : 'Unsupported in this browser — typed codes and gun scanners still work'),
         SP.el('dt', 'Data'), SP.el('dd', 'Stored on this device — export backups regularly'))));
     return root;
+  }
+
+  /* ─────────────────────────────────────────── appearance card */
+
+  const STYLES = [
+    { id: 'default', label: 'Default', swatch: '#5b8cff' },
+    { id: 'emerald', label: 'Emerald', swatch: '#34d399' },
+    { id: 'ocean', label: 'Ocean', swatch: '#38bdf8' },
+    { id: 'sunset', label: 'Sunset', swatch: '#fb923c' },
+    { id: 'violet', label: 'Violet', swatch: '#a78bfa' },
+  ];
+  const CURRENCIES = ['BDT', 'USD', 'CNY', 'EUR', 'INR'];
+
+  function appearanceCard(u) {
+    const p = SP.store.state.prefs;
+    const st = SP.store.state.settings;
+
+    /* language */
+    const langRow = SP.el('div.row.gap-2', { style: { flexWrap: 'wrap' } },
+      ...SP.i18n.LOCALES.map((l) => SP.el('button.chip', {
+        type: 'button',
+        class: SP.i18n.locale() === l.id ? 'is-active' : '',
+        onclick: () => { SP.i18n.setLocale(l.id); SP.ui.toast({ tone: 'ok', title: l.label }); SP.router.refresh(); },
+      }, l.label)));
+
+    /* currency */
+    const curSel = SP.el('select.select', { onchange: (e) => { SP.i18n.setCurrency(e.target.value); SP.ui.toast({ tone: 'ok', title: e.target.value }); } },
+      ...CURRENCIES.map((c) => SP.el('option', { value: c, selected: SP.i18n.currency() === c }, `${c} ${SP.i18n.currencySymbol() === c ? '' : `(${{ BDT: '৳', USD: '$', CNY: '¥', EUR: '€', INR: '₹' }[c]})`}`)));
+
+    /* theme mode */
+    const themeSeg = SP.segmented(
+      [{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }, { value: 'auto', label: 'Auto' }],
+      localStorage.getItem('logipilot.themeMode') || p.theme || 'dark',
+      (v) => { SP.app.setThemeMode(v); });
+
+    /* style preset */
+    const styleRow = SP.el('div.row.gap-2', { style: { flexWrap: 'wrap' } },
+      ...STYLES.map((s) => SP.el('button.stylechip', {
+        type: 'button',
+        class: (p.style || 'default') === s.id ? 'is-active' : '',
+        onclick: () => {
+          SP.store.update(['prefs'], (x) => { x.prefs.style = s.id; });
+          SP.app.applyTheme();
+          SP.router.refresh();
+        },
+      },
+        SP.el('i.stylechip__dot', { style: { background: s.swatch } }),
+        s.label)));
+
+    return SP.el('div.card.card--pad.stack.gap-3',
+      SP.el('div',
+        SP.el('div.row.gap-2', { style: { alignItems: 'center' } }, SP.icon('users'), SP.el('strong', SP.t('misc.language'))),
+        SP.el('div', { style: { marginTop: '8px' } }, langRow)),
+      SP.el('div',
+        SP.el('div.row.gap-2', { style: { alignItems: 'center' } }, SP.icon('database'), SP.el('strong', SP.t('misc.currency'))),
+        SP.el('div', { style: { marginTop: '8px', maxWidth: '220px' } }, curSel),
+        SP.el('p.tiny.mute', { style: { marginTop: '4px' } }, 'Changing the language suggests its currency — you can override it here any time.')),
+      SP.el('div',
+        SP.el('div.row.gap-2', { style: { alignItems: 'center' } }, SP.icon('moon'), SP.el('strong', SP.t('misc.theme'))),
+        SP.el('div', { style: { marginTop: '8px' } }, themeSeg)),
+      SP.el('div',
+        SP.el('div.row.gap-2', { style: { alignItems: 'center' } }, SP.icon('palette'), SP.el('strong', SP.t('misc.style'))),
+        SP.el('div', { style: { marginTop: '8px' } }, styleRow)));
   }
 
   function field(label, value, onCommit) {

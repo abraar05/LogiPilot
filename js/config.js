@@ -6,7 +6,7 @@
  */
 window.SP = window.SP || {};
 
-SP.VERSION = '1.0.0';
+SP.VERSION = '1.0.2';
 SP.BUILD = '2026.10.05';
 SP.PRODUCT_NAME = 'LogiPilot';
 SP.TAGLINE = 'Pack · Approve · Deliver — every step proven';
@@ -37,7 +37,10 @@ SP.ORDER_STATUS = [
   { id: 'cancelled', label: 'Cancelled', tone: 'mute', stage: 'done' },
 ];
 
-SP.statusOf = (id) => SP.ORDER_STATUS.find((s) => s.id === id) || { id, label: id, tone: 'mute', stage: 'done' };
+SP.statusOf = (id) => {
+  const base = SP.ORDER_STATUS.find((s) => s.id === id) || { id, label: id, tone: 'mute', stage: 'done' };
+  return { ...base, get label() { return SP.i18n ? SP.i18n.statusLabel(id) : base.label; } };
+};
 
 /** Allowed transitions; each records history + requires proof where marked. */
 SP.TRANSITIONS = {
