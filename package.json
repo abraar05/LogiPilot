@@ -1,6 +1,6 @@
 {
   "name": "logipilot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "LogiPilot \u2014 sales-order packing, QC approval, delivery chain and stamped photo proofs.",
   "private": true,
   "scripts": {

@@ -120,7 +120,42 @@ button.kpi:hover { border-color: var(--accent); }
 .printdoc__table th, .printdoc__table td { border: 1px solid #999; padding: 6px 8px; text-align: left; }
 .printdoc__table th { background: #eee; }
 
+/* ── polish: app bar titles never collide with actions ── */
+.appbar__id { min-width: 0; }
+.appbar__id strong, .appbar__id span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── polish: overlay action rows wrap gracefully ── */
+.sheet__foot { display: flex; gap: 8px; flex-wrap: wrap; }
+.sheet__foot .btn { flex: 1 1 auto; min-width: 120px; justify-content: center; }
+.sheet__foot .btn--lg { flex-basis: 100%; }
+
+/* ── polish: sheets never trap content off-screen ── */
+.sheet__body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* ── polish: order card meta never crams ── */
+.ocard__meta span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+
+/* ── polish: pack line controls stay on one row ── */
+.packline .row { flex: 0 0 auto; }
+.packline .btn--icon { flex: 0 0 auto; }
+
+/* ── polish: order detail key-values align ── */
+.kv dt { color: var(--text-mute); }
+.kv dd { text-align: right; overflow-wrap: anywhere; }
+
+/* ── polish: tables keep row content vertically centred ── */
+.dtable__cell > .stack { min-width: 0; }
+.dtable__cell strong, .dtable__cell span { overflow: hidden; text-overflow: ellipsis; }
+
 @media (max-width: 720px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .phead__actions { margin-left: 0; width: 100%; }
+  .proofgrid { grid-template-columns: repeat(2, 1fr); }
+  .ocard__actions .btn span, .ocard__actions .btn { font-size: var(--fs-xs); }
+  .dtable__table { min-width: 560px; }
+}
+
+@media (max-width: 420px) {
+  .packline b { min-width: 38px !important; }
+  .kpi__value { font-size: 19px; }
 }

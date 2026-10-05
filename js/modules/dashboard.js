@@ -21,6 +21,14 @@ SP.modules.dashboard = (() => {
     const failed = s.orders.filter((o) => o.status === 'failed').length;
     const late = s.orders.filter((o) => o.dueAt && o.dueAt < Date.now() && !['delivered', 'cancelled', 'returned'].includes(o.status)).length;
 
+    if (s.settings.demo) {
+      root.appendChild(SP.el('div.callout', { dataset: { tone: 'warn' } },
+        SP.el('span.callout__ico', SP.icon('info')),
+        SP.el('div.callout__body',
+          SP.el('strong', 'DEMO DATA'),
+          SP.el('p', 'You are exploring a generated workspace. Photo proofs are labelled placeholders, not real photos. Wipe it in Settings → Backup & data when you are ready to go live.'))));
+    }
+
     root.appendChild(SP.el('div.kpi-grid',
       SP.ui2.kpi({ label: 'To pack', value: SP.fmt.n(q.toPack.length), icon: 'box', tone: q.toPack.length ? 'warn' : null, onClick: () => SP.router.go('packing') }),
       SP.ui2.kpi({ label: 'QC queue', value: SP.fmt.n(q.qcQueue.length), icon: 'checkCircle', tone: q.qcQueue.length ? 'warn' : null, onClick: () => SP.router.go('qc') }),

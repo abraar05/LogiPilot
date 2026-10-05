@@ -16,6 +16,12 @@ SP.app = (() => {
     hint('Preparing accounts…');
     await SP.auth.ensureSeedUsers();
 
+    // First run: demo workspace so every screen is explorable.
+    if (!SP.store.state.orders.length) {
+      hint('Loading demo orders…');
+      try { SP.seedDemo.run(); SP.store.saveNow(); } catch (e) { console.warn('[seed]', e); }
+    }
+
     hint('Restoring session…');
     const user = await SP.auth.restore();
 
