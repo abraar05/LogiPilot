@@ -6,8 +6,8 @@
  */
 window.SP = window.SP || {};
 
-SP.VERSION = '1.0.2';
-SP.BUILD = '2026.10.05';
+SP.VERSION = '1.1.0';
+SP.BUILD = '2026.10.06';
 SP.PRODUCT_NAME = 'LogiPilot';
 SP.TAGLINE = 'Pack · Approve · Deliver — every step proven';
 
@@ -143,6 +143,7 @@ SP.NAV = [
     items: [
       { route: 'orders', label: 'Orders', icon: 'file', perm: 'orders:view' },
       { route: 'proofs', label: 'Photo Proofs', icon: 'eye', perm: 'proofs:view' },
+      { route: 'insights', label: 'Insights', icon: 'chart', perm: 'orders:view' },
     ],
   },
   {

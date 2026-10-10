@@ -94,6 +94,7 @@ SP.modules.orders = (() => {
         { key: 'address', label: 'Delivery address', type: 'textarea' },
         { key: 'priority', label: 'Priority', type: 'select', value: 'normal', options: [{ value: 'normal', label: 'Normal' }, { value: 'urgent', label: 'Urgent' }] },
         { key: 'dueAt', label: 'Due date', type: 'date' },
+        { key: 'codAmount', label: `Cash on delivery (${SP.i18n.currency()})`, type: 'number', min: 0, value: 0 },
         { key: 'notes', label: 'Notes', type: 'textarea' },
       ],
       onOk: async (v) => {
@@ -102,6 +103,7 @@ SP.modules.orders = (() => {
           items: items.filter((i) => i.name.trim()),
           priority: v.priority,
           dueAt: v.dueAt ? Date.parse(v.dueAt) : null,
+          codAmount: v.codAmount || 0,
           notes: v.notes || '',
         });
         SP.ui.toast({ tone: 'ok', title: `Order ${order.ref} created`, body: 'Assign a packer to begin.' });
@@ -164,6 +166,7 @@ SP.modules.orders = (() => {
           SP.el('dt', 'Driver'), SP.el('dd', SP.ui2.userName(o.driverId) || '—'),
           SP.el('dt', 'Delivery staff'), SP.el('dd', SP.ui2.userName(o.deliveryId) || '—'),
           SP.el('dt', 'Order barcode'), SP.el('dd', SP.el('code.tiny', o.barcode || o.ref)),
+          o.cod?.amount ? [SP.el('dt', 'Cash on delivery'), SP.el('dd', `${SP.i18n.money(o.cod.amount)}${o.codCollected ? ' ✓ collected' : ''}`)] : null,
           o.notes ? [SP.el('dt', 'Notes'), SP.el('dd', o.notes)] : null),
         SP.el('div',
           SP.el('div.row', { style: { justifyContent: 'space-between', alignItems: 'center' } },
@@ -187,6 +190,12 @@ SP.modules.orders = (() => {
           })))),
       ),
       actions,
+    });
+  }
+
+  function editSheet(o) {
+    SP.orders.editOrder(o.id).then(() => { SP.router.refresh(); }).catch((e) => {
+      SP.ui.toast({ tone: 'danger', title: 'Cannot edit', body: e.message });
     });
   }
 

@@ -89,6 +89,41 @@ SP.modules.users = (() => {
     });
     root.appendChild(table.el);
 
+    /* ── bulk assignment ─────────────────────────────────────── */
+    if (SP.auth.can('assign:packer')) {
+      const unassigned = SP.store.state.orders.filter((o) => !o.packerId && ['new', 'assigned'].includes(o.status));
+      const bulkHost = SP.el('div.stack.gap-2');
+      const drawBulk = () => {
+        SP.clear(bulkHost);
+        const list = SP.store.state.orders.filter((o) => !o.packerId && ['new', 'assigned'].includes(o.status));
+        if (!list.length) {
+          bulkHost.appendChild(SP.el('p.tiny.mute', 'Every active order has a packer assigned.'));
+          return;
+        }
+        const sel = SP.el('select.select', {},
+          ...SP.auth.byRole('packer').map((u) => SP.el('option', { value: u.id }, u.name)));
+        bulkHost.appendChild(SP.el('div.row.gap-2', { style: { alignItems: 'center', flexWrap: 'wrap' } },
+          SP.el('strong.tiny', `${list.length} waiting for a packer`),
+          sel,
+          SP.el('button.btn.btn--primary.btn--sm', {
+            type: 'button',
+            onclick: async () => {
+              if (!sel.value) { SP.ui.toast({ tone: 'warn', title: 'Choose a packer' }); return; }
+              let n = 0;
+              for (const o of list) {
+                try { SP.orders.assign(o.id, 'packerId', sel.value); n += 1; } catch { /* skip */ }
+              }
+              SP.ui.toast({ tone: 'ok', title: `${n} orders assigned`, body: `${SP.auth.byId(sel.value)?.name} notified.` });
+              SP.router.refresh();
+            },
+          }, SP.icon('users'), SP.t('act.bulk_assign'))));
+      };
+      drawBulk();
+      root.appendChild(SP.el('section.section',
+        SP.el('div.section__head', SP.el('div.grow', SP.el('h2', 'Unassigned orders'), SP.el('p', 'Send a batch to one packer'))),
+        SP.el('div.card.card--pad', bulkHost)));
+    }
+
     /* role cards */
     root.appendChild(SP.el('section.section',
       SP.el('div.section__head', SP.el('div.grow', SP.el('h2', 'Roles & permissions'), SP.el('p', 'What each role can do'))),

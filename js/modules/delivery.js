@@ -117,6 +117,27 @@ SP.modules.delivery = (() => {
         }, SP.icon('logout'), SP.t('act.return')));
       }
     }
+    if (o.cod?.amount && !o.codCollected && canDeliver) {
+      actions.push(SP.el('button.btn.btn--ghost', {
+        type: 'button',
+        onclick: async () => {
+          const r = await SP.modal({
+            title: `Collect ${SP.i18n.money(o.cod.amount)} — ${o.ref}`, icon: 'key', okLabel: SP.t('act.collect_cod'),
+            fields: [{ key: 'amount', label: 'Amount received', type: 'number', min: 0, value: o.cod.amount }],
+            onOk: async (v) => {
+              SP.orders.collectCOD(o.id, v.amount);
+              SP.store.update(['orders'], (s) => { const t = s.orders.find((x) => x.id === o.id); t.codCollected = true; });
+              SP.store.notify({ tone: 'ok', title: 'COD recorded', body: `${o.ref} · ${SP.i18n.money(v.amount)}` });
+              SP.router.refresh();
+            },
+          });
+          return r;
+        },
+      }, SP.icon('key'), SP.t('act.collect_cod')));
+    }
+    actions.push(SP.el('button.btn.btn--ghost', {
+      type: 'button', onclick: () => printReceipt(o),
+    }, SP.icon('print'), SP.t('act.receipt')));
     actions.push(SP.el('button.btn.btn--ghost', {
       type: 'button',
       onclick: () => {
@@ -187,6 +208,32 @@ SP.modules.delivery = (() => {
     });
     if (r) { SP.ui.toast({ tone: 'warn', title: `${o.ref} marked failed` }); SP.router.refresh(); }
   }
+
+  /** Printable delivery receipt with the customer's signature line. */
+  function printReceipt(o) {
+    const s = SP.store.state;
+    const rowsHtml = o.items.map((i) => `<tr><td>${SP.esc(i.name)}</td><td>${SP.esc(i.sku || '—')}</td><td style="text-align:right">${i.qty}</td></tr>`).join('');
+    printDoc(`Delivery Receipt ${o.ref}`, `${o.customer.name} · ${SP.fmt.dateTime(Date.now())}`, `
+      <p><strong>Delivered to:</strong> ${SP.esc(o.customer.name)} ${SP.esc(o.customer.phone ? `· ${o.customer.phone}` : '')}<br>
+      ${SP.esc(o.customer.address || '')}</p>
+      <table class="printdoc__table"><thead><tr><th>Item</th><th>SKU</th><th style="text-align:right">Qty</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+      ${o.cod?.amount ? `<p><strong>Cash on delivery:</strong> ${SP.esc(SP.i18n.money(o.cod.amount))}${o.codCollected ? ' — collected' : ' — DUE'}</p>` : ''}
+      <p style="margin-top:26px">Delivered by: ${SP.esc(SP.ui2.userName(o.deliveryId) || '')} · Driver: ${SP.esc(SP.ui2.userName(o.driverId) || '')}</p>
+      <div style="display:flex;gap:60px;margin-top:40px"><span>Received by: ______________</span><span>Date: ______________</span></div>`);
+  }
+
+  function printDoc(title, sub, bodyHtml) {
+    const doc = SP.el('div.printdoc', { html: `
+      <div class="printdoc__head"><div><strong>${SP.esc(title)}</strong><div class="printdoc__sub">${SP.esc(sub)}</div></div>
+      <div class="printdoc__meta">${SP.esc(sName())}<br>${SP.fmt.dateTime(Date.now())}</div></div>
+      <div class="printdoc__body">${bodyHtml}</div>` });
+    document.body.appendChild(doc);
+    document.body.classList.add('is-printing');
+    const cleanup = () => { document.body.classList.remove('is-printing'); doc.remove(); removeEventListener('afterprint', cleanup); };
+    addEventListener('afterprint', cleanup);
+    setTimeout(() => { window.print(); setTimeout(cleanup, 1500); }, 60);
+  }
+  const sName = () => SP.store.state.settings.company.name || 'LogiPilot';
 
   return MOD;
 })();

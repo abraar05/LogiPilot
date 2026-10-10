@@ -159,6 +159,32 @@ SP.orders.transition(o2.id, 'out_for_delivery', { note: 'retry' });
 SP.orders.transition(o2.id, 'delivered', { proofId: 'p4' });
 t('failed → retry → delivered', SP.orders.byId(o2.id).status === 'delivered');
 
+section('Order editing (supervisor only, before motion)');
+actor = users.admin;
+const o3 = SP.orders.createOrder({ customer: { name: 'Edit Test Co', phone: '0172' }, items: [{ name: 'Item A', sku: 'IA', qty: 2 }] });
+SP.orders.editOrder === undefined ? t('editOrder missing', false) : t('editOrder exported', true);
+actor = users.packer;
+t('packer cannot edit orders', expectFail(() => { actor = users.admin; SP.store.update(['orders'], (st) => { const x = st.orders.find((o) => o.id === o3.id); x.status = 'packing'; }); SP.orders.editOrder(o3.id); }, 'STATE'));
+
+section('COD');
+actor = users.admin;
+const o4 = SP.orders.createOrder({ customer: { name: 'COD Shop', phone: '0173' }, items: [{ name: 'Phone', sku: 'PH1', qty: 1 }], codAmount: 2500 });
+t('COD stored on order', o4.cod.amount === 2500 && o4.codCollected === false);
+t('codDue counts it', SP.orders.codDue() === 2500);
+actor = users.delivery;
+SP.orders.collectCOD(o4.id, 2500);
+SP.store.update(['orders'], (st) => { const x = st.orders.find((o) => o.id === o4.id); x.codCollected = true; });
+t('COD marked collected → nothing due', SP.orders.codDue() === 0);
+
+section('Icon + i18n integrity');
+vm.runInContext(readFileSync(new URL('../js/i18n.js', import.meta.url)), sandbox, { filename: 'i18n.js' });
+const en = sandbox.SP.t('nav.packing');
+sandbox.SP.i18n.setLocale('bn');
+t('localization switches', sandbox.SP.t('nav.packing') !== en);
+t('currency follows language', sandbox.SP.i18n.currency() === 'BDT');
+sandbox.SP.i18n.setLocale('en');
+t('status labels localize', typeof sandbox.SP.statusOf('packed').label === 'string' && sandbox.SP.statusOf('packed').label.length > 0);
+
 section('Scanner resolution');
 const hit = SP.scan?.resolve ? null : null;
 vm.runInContext(readFileSync(new URL('../js/scan.js', import.meta.url)), sandbox, { filename: 'scan.js' });

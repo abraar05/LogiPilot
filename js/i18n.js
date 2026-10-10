@@ -21,6 +21,7 @@ SP.i18n = (() => {
     'nav.users': ['Users & Assignment', 'ব্যবহারকারী ও অ্যাসাইনমেন্ট', '用户与分配'],
     'nav.audit': ['Audit Log', 'অডিট লগ', '审计日志'],
     'nav.settings': ['Settings', 'সেটিংস', '设置'],
+    'nav.insights': ['Insights', 'বিশ্লেষণ', '洞察'],
     'nav.group.work': ['Work', 'কাজ', '工作'],
     'nav.group.track': ['Track', 'ট্র্যাক', '跟踪'],
     'nav.group.admin': ['Administration', 'প্রশাসন', '管理'],
@@ -97,6 +98,9 @@ SP.i18n = (() => {
     'act.add_item': ['Add item', 'আইটেম যোগ', '添加商品'],
     'act.create': ['Create', 'তৈরি', '创建'],
     'act.edit': ['Edit', 'এডিট', '编辑'],
+    'act.bulk_assign': ['Bulk assign', 'ভরিল অ্যাসাইন', '批量分配'],
+    'act.collect_cod': ['Collect COD', 'COD সংগ্রহ', '收取货款'],
+    'act.receipt': ['Delivery receipt', 'ডেলিভারি রসিদ', '配送回执'],
     'act.delete': ['Delete', 'ডিলিট', '删除'],
     'act.enable': ['Enable', 'চালু', '启用'],
     'act.disable': ['Disable', 'বন্ধ', '禁用'],
@@ -195,7 +199,7 @@ SP.i18n = (() => {
         st.settings.company.currency = def.currency;
       }
     });
-    document.documentElement.lang = id;
+    if (typeof document !== 'undefined' && document.documentElement) document.documentElement.lang = id;
     SP.store.audit('settings.locale', id, '');
     SP.app?.paintChrome?.();
     SP.router?.refresh?.();

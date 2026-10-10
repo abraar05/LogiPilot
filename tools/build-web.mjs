@@ -55,7 +55,7 @@ async function main() {
     resolve(OUT, 'build-info.json'),
     `${JSON.stringify({
       app: 'LogiPilot',
-      version: '1.0.2',
+      version: '1.1.0',
       builtAt: new Date().toISOString(),
     }, null, 2)}\n`,
     'utf8',

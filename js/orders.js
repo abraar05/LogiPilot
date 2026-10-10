@@ -22,7 +22,7 @@ SP.orders = (() => {
 
   /* ─────────────────────────────────────────────────────── creation */
 
-  function createOrder({ customer, items, notes = '', priority = 'normal', dueAt = null }) {
+  function createOrder({ customer, items, notes = '', priority = 'normal', dueAt = null, codAmount = 0 }) {
     if (!SP.auth.can('orders:create')) throw new WorkflowError('Your role cannot create orders.', 'PERM');
     if (!customer?.name?.trim()) throw new WorkflowError('Customer name is required.', 'VALIDATION');
     if (!items?.length) throw new WorkflowError('Add at least one item.', 'VALIDATION');
@@ -44,6 +44,8 @@ SP.orders = (() => {
       priority,
       packerId: null, qcId: null, driverId: null, deliveryId: null,
       notes,
+      cod: Number(codAmount) > 0 ? { amount: Number(codAmount) } : null,
+      codCollected: false,
       history: [{ at: Date.now(), by: SP.auth.current()?.name || 'system', action: 'created', note: notes || '' }],
       createdAt: Date.now(), updatedAt: Date.now(),
       dueAt,
@@ -53,7 +55,66 @@ SP.orders = (() => {
     return order;
   }
 
-  /* ─────────────────────────────────────────────────── assignments */
+  /* ─────────────────────────────────────────────────────── editing */
+
+  /** Supervisor edit: customer, items, priority, notes — only before packing starts. */
+  function editOrder(orderId) {
+    const order = byId(orderId);
+    if (!order) throw new WorkflowError('Order not found.', 'NOT_FOUND');
+    if (['packing', 'packed', 'qc_approved', 'out_for_delivery', 'delivered'].includes(order.status)) {
+      throw new WorkflowError('This order is already in motion and can no longer be edited.', 'STATE');
+    }
+    if (!SP.auth.can('orders:edit')) throw new WorkflowError('Your role cannot edit orders.', 'PERM');
+
+    const items = order.items.map((i) => ({ ...i }));
+    const itemsHost = SP.el('div.stack.gap-1');
+    const draw = () => {
+      SP.clear(itemsHost);
+      items.forEach((it, idx) => {
+        itemsHost.appendChild(SP.el('div.sale-line',
+          SP.el('div.grow',
+            SP.el('input.input', { placeholder: 'Item name *', value: it.name, oninput: (e) => { it.name = e.target.value; } }),
+            SP.el('div.row.gap-2', { style: { marginTop: '4px' } },
+              SP.el('input.input', { placeholder: 'SKU / barcode', value: it.sku, style: { flex: 2 }, oninput: (e) => { it.sku = e.target.value; it.barcode = e.target.value; } }),
+              SP.el('input.input.input--num', { type: 'number', min: 1, value: it.qty, style: { flex: 1 }, onchange: (e) => { it.qty = Math.max(1, Number(e.target.value) || 1); } }))),
+          SP.el('button.btn.btn--icon.btn--sm.btn--quiet', { type: 'button', 'aria-label': 'Remove', onclick: () => { items.splice(idx, 1); draw(); } }, SP.icon('x'))));
+      });
+      itemsHost.appendChild(SP.el('button.btn.btn--ghost.btn--sm.btn--block', {
+        type: 'button', onclick: () => { items.push({ id: SP.uid('it'), name: '', sku: '', qty: 1, packedQty: 0, barcode: '' }); draw(); },
+      }, SP.icon('plus'), SP.t('act.add_item')));
+    };
+    draw();
+
+    return SP.modal({
+      title: `Edit ${order.ref}`, icon: 'edit', okLabel: SP.t('act.save'),
+      body: SP.el('div.stack.gap-2', SP.el('strong', { class: 'tiny mute' }, SP.t('misc.items').toUpperCase()), itemsHost),
+      fields: [
+        { key: 'customerName', label: SP.t('misc.customer'), required: true, value: order.customer.name },
+        { key: 'phone', label: 'Phone', inputmode: 'tel', value: order.customer.phone },
+        { key: 'address', label: 'Address', type: 'textarea', value: order.customer.address },
+        { key: 'priority', label: 'Priority', type: 'select', value: order.priority, options: [{ value: 'normal', label: 'Normal' }, { value: 'urgent', label: 'Urgent / জরুরি / 紧急' }] },
+        { key: 'dueAt', label: 'Due date', type: 'date', value: order.dueAt ? new Date(order.dueAt).toISOString().slice(0, 10) : '' },
+        { key: 'notes', label: 'Notes', type: 'textarea', value: order.notes },
+      ],
+      onOk: async (v) => {
+        if (!items.filter((i) => i.name.trim()).length) throw new WorkflowError('Add at least one item.', 'VALIDATION');
+        SP.store.update(['orders'], (s) => {
+          const t = s.orders.find((x) => x.id === orderId);
+          t.customer = { name: v.customerName, phone: v.phone || '', address: v.address || '' };
+          t.items = items.filter((i) => i.name.trim()).map((i, i2) => ({ id: `it${i2 + 1}`, packedQty: 0, ...i }));
+          t.priority = v.priority;
+          t.dueAt = v.dueAt ? Date.parse(v.dueAt) : null;
+          t.notes = v.notes || '';
+          t.updatedAt = Date.now();
+          t.history.push({ at: Date.now(), by: SP.auth.current()?.name || 'system', action: 'edited', note: 'Order details updated' });
+        });
+        SP.store.audit('order.edit', order.ref, `${SP.sum(items, (i) => i.qty)} units`);
+        SP.ui.toast({ tone: 'ok', title: `${order.ref} updated` });
+      },
+    });
+  }
+
+  /* ─────────────────────────────────────────────────── assignment */
 
   function assign(orderId, role, userId, by) {
     const order = byId(orderId);
@@ -214,5 +275,26 @@ SP.orders = (() => {
     };
   };
 
-  return { createOrder, assign, transition, setPackedQty, fullyPacked, byId, byRef, queues, WorkflowError };
+  /** Record cash-on-delivery collection. */
+  function collectCOD(orderId, amount) {
+    const order = byId(orderId);
+    if (!order) throw new WorkflowError('Order not found.', 'NOT_FOUND');
+    if (!SP.auth.can('deliver:perform') && !SP.auth.can('orders:edit')) throw new WorkflowError('Your role cannot record collection.', 'PERM');
+    SP.store.update(['orders'], (s) => {
+      const t = s.orders.find((x) => x.id === orderId);
+      t.cod = { amount: Number(amount) || 0, collectedBy: SP.auth.current()?.name || 'system', at: Date.now() };
+      t.history.push({ at: Date.now(), by: SP.auth.current()?.name || 'system', action: 'cod_collected', note: `COD ${Number(amount) || 0}` });
+    });
+    SP.store.audit('order.cod', order.ref, `Collected ${amount}`);
+    return byId(orderId);
+  }
+
+  /** COD awaiting collection across the pipeline. */
+  function codDue() {
+    return st().orders
+      .filter((o) => o.cod?.amount && !o.codCollected)
+      .reduce((sum, o) => sum + Number(o.cod.amount || 0), 0);
+  }
+
+  return { createOrder, editOrder, assign, collectCOD, codDue, transition, setPackedQty, fullyPacked, byId, byRef, queues, WorkflowError };
 })();
