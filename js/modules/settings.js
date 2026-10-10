@@ -143,6 +143,9 @@ SP.modules.settings = (() => {
           },
         }, SP.icon('trash'), 'Wipe data') : null)));
 
+    /* ── server (full-stack sync) ─────────────────────────────────── */
+    root.appendChild(serverCard());
+
     /* about */
     root.appendChild(SP.el('div.card.card--pad',
       SP.el('strong', { style: { display: 'block', marginBottom: 'var(--sp-2)' } }, 'About'),
@@ -215,6 +218,65 @@ SP.modules.settings = (() => {
       SP.el('div',
         SP.el('div.row.gap-2', { style: { alignItems: 'center' } }, SP.icon('palette'), SP.el('strong', SP.t('misc.style'))),
         SP.el('div', { style: { marginTop: '8px' } }, styleRow)));
+  }
+
+  /* ─────────────────────────────────────────────── server panel */
+
+  function serverCard() {
+    const sv = SP.store.state.settings.server || {};
+    const pending = SP.api?.pendingCount?.() || 0;
+    const stateLabel = SP.api?.status?.label?.() || 'Local only';
+
+    const urlInput = SP.el('input.input', { placeholder: 'https://logipilot-api.your-host.com', value: sv.url || '' });
+    const connectBtn = SP.el('button.btn.btn--primary.btn--sm', {
+      type: 'button',
+      onclick: async () => {
+        const url = urlInput.value.trim();
+        if (!url) return;
+        connectBtn.setAttribute('aria-busy', 'true');
+        const res = await SP.api.connect(url);
+        connectBtn.removeAttribute('aria-busy');
+        SP.ui.toast(res.ok
+          ? { tone: 'ok', title: 'Server connected', body: 'Sign in with your server account to sync.' }
+          : { tone: 'danger', title: 'Could not connect', body: res.error || 'Check the URL and try again.' });
+        SP.router.refresh();
+      },
+    }, SP.icon('link'), 'Connect');
+
+    const queueHost = SP.el('div.stack.gap-1');
+    const drawQueue = () => {
+      SP.clear(queueHost);
+      const ops = SP.store.state.pendingOps;
+      if (!ops.length) { queueHost.appendChild(SP.el('p.tiny.mute', 'Everything is synced.')); return; }
+      for (const op of ops.slice(-8).reverse()) {
+        queueHost.appendChild(SP.el('div.lrow',
+          SP.el('span.lrow__ico', SP.icon(op.lastError ? 'alert' : 'refresh')),
+          SP.el('div.lrow__main', SP.el('strong', op.kind.replace(/\./g, ' ')), SP.el('small', op.lastError || `${op.tries} attempt(s)`)),
+          SP.el('button.btn.btn--icon.btn--sm.btn--quiet', {
+            type: 'button', 'aria-label': 'Discard', onclick: () => { SP.api.discard(op.id); drawQueue(); },
+          }, SP.icon('trash'))));
+      }
+    };
+    drawQueue();
+
+    return SP.el('div.card.card--pad.stack.gap-3',
+      SP.el('div.row', { style: { justifyContent: 'space-between', alignItems: 'center' } },
+        SP.el('div.row.gap-2', { style: { alignItems: 'center' } }, SP.icon('database'), SP.el('strong', 'LogiPilot Server')),
+        SP.ui2.tag(stateLabel, sv.connected ? 'ok' : 'mute')),
+      SP.el('p.tiny.mute', 'Connect your own API to sync orders, proofs and users across every device. Without a server everything stays on this device.'),
+      sv.url ? SP.el('div.row.gap-2', { style: { flexWrap: 'wrap' } },
+        SP.el('code.tiny', { style: { flex: 1, minWidth: '180px' } }, sv.url),
+        SP.el('button.btn.btn--ghost.btn--sm', { type: 'button', onclick: async () => { await SP.api.disconnect(); SP.router.refresh(); } }, SP.icon('logout'), 'Disconnect'),
+        SP.el('button.btn.btn--ghost.btn--sm', { type: 'button', onclick: async () => { const r = await SP.api.flush(); SP.ui.toast({ tone: 'ok', title: `Pushed ${r.pushed}`, body: `${r.pending} still queued.` }); SP.router.refresh(); } }, SP.icon('refresh'), 'Sync now'))
+        : SP.el('div.row.gap-2', { style: { flexWrap: 'wrap' } }, urlInput, connectBtn),
+      sv.connected ? SP.el('dl.kv',
+        SP.el('dt', 'Status'), SP.el('dd', stateLabel),
+        SP.el('dt', 'Queued changes'), SP.el('dd', SP.fmt.n(pending)),
+        SP.el('dt', 'Last sync'), SP.el('dd', sv.lastSync ? SP.fmt.ago(sv.lastSync) : 'Never'),
+        sv.health ? [SP.el('dt', 'Server version'), SP.el('dd', sv.health.version || '—'), SP.el('dt', 'Database'), SP.el('dd', sv.health.db || '—')] : null,
+        sv.error ? [SP.el('dt', 'Last error'), SP.el('dd', { style: { color: 'var(--warn)' } }, sv.error)] : null) : null,
+      sv.url ? SP.el('div', SP.el('strong.tiny', 'Sync queue'), queueHost) : null,
+      SP.el('p.tiny.mute', 'To run the server: clone the repository → cd server → node src/bootstrap.js → npm start. It ships with Docker and Postgres support.'));
   }
 
   function field(label, value, onCommit) {

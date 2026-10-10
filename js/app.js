@@ -30,6 +30,14 @@ SP.app = (() => {
     wireKeyboard();
     wireOnline();
 
+    // Full-stack: connect the realtime stream when a server is configured.
+    SP.api.status.on(() => paintConnection());
+    if (SP.api.isConfigured() && SP.store.state.settings.server.token) {
+      SP.api.status.set('connecting');
+      SP.api.connectStream();
+      SP.api.flush().then(() => paintConnection());
+    }
+
     if (user) enterApp(user);
     else showAuth();
 
@@ -176,8 +184,19 @@ SP.app = (() => {
     const pill = document.getElementById('connPill');
     if (!pill) return;
     const online = navigator.onLine;
-    pill.dataset.state = online ? 'live' : 'offline';
-    pill.querySelector('.conn__text').textContent = online ? 'On device' : 'Offline — saved locally';
+    const serverState = SP.api?.status?.get?.() || 'local';
+    const pending = SP.api?.pendingCount?.() || 0;
+    const state = !online ? 'offline'
+      : serverState === 'local' ? 'live'
+        : serverState === 'error' ? 'error'
+          : serverState === 'syncing' ? 'syncing' : 'live';
+    pill.dataset.state = state;
+    const label = !online
+      ? `Offline — saved here${pending ? ` · ${pending} queued` : ''}`
+      : serverState === 'local'
+        ? `On device${pending ? ` · ${pending} queued` : ''}`
+        : `${SP.api.status.label()}${pending ? ` · ${pending}` : ''}`;
+    pill.querySelector('.conn__text').textContent = label;
   }
 
   function refreshAlerts() {

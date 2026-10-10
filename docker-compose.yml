@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  api:
+    build: ./server
+    restart: unless-stopped
+    ports: ["8787:8787"]
+    environment:
+      NODE_ENV: production
+      LP_SECRET: ${LP_SECRET:?set LP_SECRET in .env}
+      LP_CORS: ${LP_CORS:-*}
+      DATABASE_URL: ${DATABASE_URL:-}
+    volumes:
+      - logipilot-data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+volumes:
+  logipilot-data:

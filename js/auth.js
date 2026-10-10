@@ -222,6 +222,7 @@ SP.auth = (() => {
     };
     SP.store.update(['users'], (st) => { st.users.push(user); });
     SP.store.audit('user.create', email, `role=${user.role}`);
+    SP.api?.enqueue?.({ kind: 'user.create', id: user.id, payload: { name: user.name, email: user.email, phone: user.phone, role: user.role, password: data.password } });
     return user;
   }
 

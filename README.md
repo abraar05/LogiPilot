@@ -62,3 +62,29 @@ Rules enforced by the engine, not by convention:
 npm test        # full chain: 32 checks
 npm run check   # syntax-check all modules
 ```
+
+---
+
+## Full stack (v2.0.0)
+
+The app ships with a real backend in `server/`:
+
+```bash
+cd server
+node src/bootstrap.js     # first admin + starter crew
+npm start                  # http://0.0.0.0:8787   (or: docker compose up -d)
+```
+
+Then in **Settings → LogiPilot Server**, paste the server URL, connect, and sign
+in with your server account. Everything you do is written locally first and
+pushed through an idempotent outbox, so the app works offline and syncs when it
+can. The server is the authority: it re-validates every transition, enforces
+roles, detects version conflicts and keeps a hash-chained audit trail.
+
+- API docs: [`server/README.md`](server/README.md)
+- Tests: `cd server && npm test` — 18 tests including a client↔server
+  state-machine parity check
+- Storage: durable file adapter by default, Postgres when `DATABASE_URL` is set
+- Realtime: SSE stream; the UI live-updates queues and assignments
+
+Full roadmap: [`ROADMAP.md`](ROADMAP.md)

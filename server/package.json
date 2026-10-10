@@ -1,0 +1,19 @@
+{
+  "name": "logipilot-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LogiPilot API \u2014 orders, proofs, users, reports, realtime",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test test/*.test.js"
+  },
+  "optionalDependencies": {
+    "pg": "^8.11.0"
+  }
+}

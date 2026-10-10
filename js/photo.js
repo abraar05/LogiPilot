@@ -140,6 +140,7 @@ SP.photo = (() => {
 
     SP.store.update(['proofs'], (st) => { st.proofs.unshift(proof); });
     SP.store.audit('proof.submit', proof.ref, `${order.ref} · ${stage} · ${gps ? 'GPS' : 'no GPS'}`);
+    SP.api?.enqueue?.({ kind: 'proof.submit', id: proof.id, payload: { orderId: order.id, stage, dataUrl, gps, note } });
     return proof;
   }
 

@@ -39,6 +39,8 @@ SP.store = (() => {
       proofs: [],      // { id, ref, orderId, orderRef, stage, byId, byName, role, at, dataUrl, stamp{text,gps,device}, note, immutable }
       notifications: [],
       audit: [],
+      pendingOps: [],     // offline outbox for the server (see js/api.js)
+      serverMeta: null,
       counters: { order: 0, proof: 0 },
     };
   }

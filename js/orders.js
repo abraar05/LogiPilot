@@ -52,6 +52,7 @@ SP.orders = (() => {
     };
     SP.store.update(['orders'], (s) => { s.orders.unshift(order); });
     SP.store.audit('order.create', order.ref, `${order.customer.name} · ${SP.sum(order.items, (i) => i.qty)} units`);
+    SP.api?.enqueue?.({ kind: 'order.create', id: order.id, payload: { customer: order.customer, items: order.items.map(({ name, sku, qty }) => ({ name, sku, qty })), notes, priority, dueAt, codAmount } });
     return order;
   }
 
@@ -109,6 +110,7 @@ SP.orders = (() => {
           t.history.push({ at: Date.now(), by: SP.auth.current()?.name || 'system', action: 'edited', note: 'Order details updated' });
         });
         SP.store.audit('order.edit', order.ref, `${SP.sum(items, (i) => i.qty)} units`);
+        SP.api?.enqueue?.({ kind: 'order.update', id: orderId, payload: { customer, items, priority, dueAt, notes } });
         SP.ui.toast({ tone: 'ok', title: `${order.ref} updated` });
       },
     });
@@ -151,6 +153,7 @@ SP.orders = (() => {
     if (!isSelf) {
       SP.store.notify({ tone: 'info', title: `New task: ${order.ref}`, body: `You were assigned as ${fieldLabel(role)} for ${order.customer.name}.`, route: routeFor(role) });
     }
+    SP.api?.enqueue?.({ kind: 'order.assign', id: orderId, payload: { field: role, userId } });
     return byId(orderId);
   }
 
@@ -228,6 +231,7 @@ SP.orders = (() => {
     });
 
     SP.store.audit(`order.${to}`, order.ref, opts.note || '', user?.name);
+    SP.api?.enqueue?.({ kind: 'order.transition', id: orderId, payload: { id: orderId, to, proofId: opts.proofId || null, note: opts.note || '', expectedVersion: order.version || null } });
 
     // Notify the next party in the chain.
     const notifyUser = { packed: order.qcId, qc_rejected: order.packerId, qc_approved: order.driverId, out_for_delivery: order.deliveryId }[to];
@@ -286,6 +290,7 @@ SP.orders = (() => {
       t.history.push({ at: Date.now(), by: SP.auth.current()?.name || 'system', action: 'cod_collected', note: `COD ${Number(amount) || 0}` });
     });
     SP.store.audit('order.cod', order.ref, `Collected ${amount}`);
+    SP.api?.enqueue?.({ kind: 'order.cod', id: orderId, payload: { id: orderId, amount } });
     return byId(orderId);
   }
 

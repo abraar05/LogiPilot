@@ -6,8 +6,8 @@
  */
 window.SP = window.SP || {};
 
-SP.VERSION = '1.1.0';
-SP.BUILD = '2026.10.06';
+SP.VERSION = '2.0.0';
+SP.BUILD = '2026.10.10';
 SP.PRODUCT_NAME = 'LogiPilot';
 SP.TAGLINE = 'Pack · Approve · Deliver — every step proven';
 
